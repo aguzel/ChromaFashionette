@@ -1,4 +1,4 @@
-# ChromaFashionette
+# ChromaFashionette :dress: :brain:
 Designing Efficient Image-to-Image Translation Artificial Neural Network Model For Segmenting Fashion Images
 
 ChromaFashionette" is a name for the artificial neural network built during my University of Leeds AI MSc thesis.
