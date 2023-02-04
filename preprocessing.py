@@ -1,27 +1,37 @@
-import torch
 import os
-from torch.utils.data import Dataset
-from torchvision.io import read_image
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
 
-
-class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
-        self.img_labels = pd.read_csv(annotations_file)
-        self.img_dir = img_dir
+class FashionImageSegmentationDataset(torch.utils.data.Dataset):
+    def __init__(self, root_dir, mode, transform=None):
+        self.root_dir = root_dir
+        self.mode = mode
         self.transform = transform
-        self.target_transform = target_transform
+
+        self.input_image_paths = []
+        self.gt_image_paths = []
+        if self.mode == 'train':
+            input_data_dir = os.path.join(root_dir, 'train/A')
+            gt_data_dir = os.path.join(root_dir, 'train/B')
+        elif self.mode == 'test':
+            input_data_dir = os.path.join(root_dir, 'test/A')
+            gt_data_dir = os.path.join(root_dir, 'test/B')
+
+        for filename in os.listdir(input_data_dir):
+            if filename.endswith(".png"):
+                self.input_image_paths.append(os.path.join(input_data_dir, filename))
+                self.gt_image_paths.append(os.path.join(gt_data_dir, filename))
 
     def __len__(self):
-        return len(self.img_labels)
+        return len(self.input_image_paths)
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-        image = read_image(img_path)
-        label = self.img_labels.iloc[idx, 1]
+        input_image = Image.open(self.input_image_paths[idx])        
+        gt_image = Image.open(self.gt_image_paths[idx])
+
         if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
-        return image, label
+            input_image = self.transform(input_image)
+            gt_image = self.transform(gt_image)
 
-
+        return input_image, gt_image
