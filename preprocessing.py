@@ -49,7 +49,7 @@ class FashionImageSegmentationDataset(torch.utils.data.Dataset):
             class_labels = class_labels.view(512, 256)
             class_labels = class_labels.long()
 
-        return input_image, class_labels
+        return input_image, class_labels, gt_image
 
 
 
