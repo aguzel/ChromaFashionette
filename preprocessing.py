@@ -32,6 +32,27 @@ class FashionImageSegmentationDataset(torch.utils.data.Dataset):
 
         if self.transform:
             input_image = self.transform(input_image)
-            gt_image = self.transform(gt_image)
+            gt_image = self.transform(gt_image)        
+            gray_scale = torch.mean(gt_image, dim=0)
+            gray_scale = gray_scale.view(512*256)
+            min_values = torch.min(gray_scale, dim=0, keepdim=True).values
+            max_values = torch.max(gray_scale, dim=0, keepdim=True).values
+            gray_scale = (gray_scale - min_values) / (max_values - min_values)
+            thresholds = torch.tensor([0.,
+                                    0.39384118,
+                                    0.57536465,
+                                    0.726094,
+                                    1.])
+            class_labels = torch.zeros_like(gray_scale)
+            for i in range(5):
+                class_labels[(gray_scale == thresholds[i])] = i
+            class_labels = class_labels.view(512, 256)
+            class_labels = class_labels.long()
 
-        return input_image, gt_image
+        return input_image, class_labels
+
+
+
+
+
+        
