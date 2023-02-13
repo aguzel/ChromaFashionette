@@ -55,10 +55,12 @@ def pixel_accuracy(pred, target):
         accuracy: float, the pixel accuracy.
     """
     # Convert the RGB images to grayscale
-    pred = 0.2989 * pred[:, 0, :, :] + 0.5870 * pred[:, 1, :, :] + 0.1140 * pred[:, 2, :, :]
-    target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
+    # pred = 0.2989 * pred[:, 0, :, :] + 0.5870 * pred[:, 1, :, :] + 0.1140 * pred[:, 2, :, :]
+    # target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
     
     # Convert the images to binary masks by thresholding
+    # pred = (pred > 0.5).float()
+    # target = (target > 0.5).float()
     
     # Calculate the number of correctly classified pixels
     correct = (pred == target).sum().item()
@@ -71,3 +73,19 @@ def pixel_accuracy(pred, target):
     return accuracy
 
 
+def iou(pred, target, n_classes = 5):
+  ious = []
+  pred = pred.view(-1)
+  target = target.view(-1)
+
+  # Ignore IoU for background class ("0")
+  for cls in range(1, n_classes):  # This goes from 1:n_classes-1 -> class "0" is ignored
+    pred_inds = pred == cls
+    target_inds = target == cls
+    intersection = (pred_inds[target_inds]).long().sum().data.cpu()[0]  # Cast to long to prevent overflows
+    union = pred_inds.long().sum().data.cpu()[0] + target_inds.long().sum().data.cpu()[0] - intersection
+    if union == 0:
+      ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
+    else:
+      ious.append(float(intersection) / float(max(union, 1)))
+  return np.array(ious)
