@@ -118,6 +118,5 @@ preds_ = torch.argmax(example_results.squeeze(), dim=1)
 output_images = decode_output(preds_)
 show_grid_images(output_images.detach().cpu())
 print(pixel_accuracy(decode_output(preds_).detach().cpu(),gt_images ))
-print(iou(decode_output(preds_).detach().cpu(),gt_images ))
-
+print(iou((preds_).detach().cpu(), labels ))
 # %%
