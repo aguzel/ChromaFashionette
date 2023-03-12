@@ -67,7 +67,7 @@ optimizer = torch.optim.Adam(net.parameters(),
                              )                         
 
 # %%
-epochs = 10
+epochs = 9
 net.train()
 for epoch in range(epochs):
     training_loss = 0.0
@@ -98,7 +98,7 @@ for epoch in range(epochs):
             loss = loss_func(predictions, targets)
             test_loss += loss.item()
             preds_ = torch.argmax(predictions.squeeze(), dim=1)
-            pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb)
+            pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=False)
             iou += intersection_over_unit((preds_).detach().cpu(), targets.detach().cpu())
             if i % 40 == 39:    
               writer.add_scalar('test loss',
@@ -122,12 +122,31 @@ net.eval()
 testloader = torch.utils.data.DataLoader(testset, batch_size=8, shuffle=True, num_workers=4)
 images, labels, gt_images = next(iter(testloader))
 show_grid_images(images.detach().cpu())
-show_grid_images(gt_images.detach().cpu())
+show_grid_images(gt_images.detach().cpu()[1:2])
 example_results = (net(images.to(device)))
-print(example_results.shape)
 preds_ = torch.argmax(example_results.squeeze(), dim=1)
 output_images = decode_output(preds_)
-show_grid_images(output_images.detach().cpu())
+show_grid_images(output_images.detach().cpu()[1:2])
+print(pixel_accuracy(decode_output(preds_).detach().cpu()[1:2],gt_images[1:2], background=False ))
+print(pixel_accuracy(decode_output(preds_).detach().cpu()[1:2],gt_images[1:2], background=True ))
+# print(iou((preds_).detach().cpu(), labels ))
+
+# %%
+# %%
 print(pixel_accuracy(decode_output(preds_).detach().cpu(),gt_images ))
-print(iou((preds_).detach().cpu(), labels ))
+print(pixel_accuracy(gt_images, gt_images ))
+print(intersection_over_unit(labels.detach().cpu(), labels.detach().cpu()))
+# %%
+import odak
+from utils import *
+gt = odak.learn.tools.load_image('/home/atlas/ChromaFashionette/gt.png', normalizeby = 255.)
+test = odak.learn.tools.load_image('/home/atlas/ChromaFashionette/test_025x.png', normalizeby = 255.)
+gt = gt.swapaxes(0,2)
+test = test.swapaxes(0,2)
+gt_stack = torch.stack((gt, gt, gt, gt, gt), dim=0)
+test_stack = torch.stack((test, test, test, test, test), dim=0)
+print(pixel_accuracy(test.unsqueeze(0), gt.unsqueeze(0), False))
+print(pixel_accuracy(test.unsqueeze(0), gt.unsqueeze(0), True))
+print(pixel_accuracy(test_stack, gt_stack, True))
+
 # %%

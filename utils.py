@@ -43,7 +43,7 @@ def decode_output(images, nc=5, device = 'cuda'):
   return rgb_batch
 
 
-def pixel_accuracy(pred, target):
+def pixel_accuracy(pred, target, background_count = False):
     """
     Calculates the pixel accuracy between two RGB images.
     
@@ -55,21 +55,20 @@ def pixel_accuracy(pred, target):
         accuracy: float, the pixel accuracy.
     """
     # Convert the RGB images to grayscale
-    # pred = 0.2989 * pred[:, 0, :, :] + 0.5870 * pred[:, 1, :, :] + 0.1140 * pred[:, 2, :, :]
-    # target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
-    
-    # Convert the images to binary masks by thresholding
-    # pred = (pred > 0.5).float()
-    # target = (target > 0.5).float()
-    
+    target = target * 255.0
+    pred = 0.2989 * pred[:, 0, :, :] + 0.5870 * pred[:, 1, :, :] + 0.1140 * pred[:, 2, :, :]
+    target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
+    pred = torch.round(pred, decimals=1)
+    target = torch.round(target, decimals=1)
     # Calculate the number of correctly classified pixels
+    background_image = torch.zeros_like(target)
     correct = (pred == target).sum().item()
-    
+    background_pixels  = (pred == background_image).sum().item()
     # Calculate the total number of pixels
-    total = pred.numel()
-    
-    accuracy = correct / total
-    
+    if background_count == False:
+       accuracy = (correct - background_pixels) /  (pred.numel() - background_pixels)
+    else:
+       accuracy = correct / target.numel()
     return accuracy
 
 
@@ -77,11 +76,10 @@ def intersection_over_unit(pred, target, num_classes = 5):
   ious = []
   pred = pred.view(-1)
   target = target.view(-1)
-
   # background class "0" is ignored 
-  for cls in range(1, num_classes):  
-    pred_inds = pred == cls
-    target_inds = target == cls
+  for cls_ in range(1, num_classes):  
+    pred_inds = pred == cls_
+    target_inds = target == cls_
     intersection = (pred_inds[target_inds]).long().sum().data.cpu() 
     union = pred_inds.long().sum().data.cpu() + target_inds.long().sum().data.cpu() - intersection
     ious.append(float(intersection) / float(max(union, 1)))
