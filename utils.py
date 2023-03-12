@@ -20,7 +20,7 @@ def show_grid_labels(labels, nrow = 8):
     plt.show()
     return None
 
-def decode_output(images, nc=5):
+def decode_output(images, nc=5, device = 'cuda'):
   label_colors = torch.tensor([(0, 0, 0),
                            (66, 127, 50),
                            (224, 16, 115),
@@ -73,7 +73,7 @@ def pixel_accuracy(pred, target):
     return accuracy
 
 
-def iou(pred, target, num_classes = 5):
+def intersection_over_unit(pred, target, num_classes = 5):
   ious = []
   pred = pred.view(-1)
   target = target.view(-1)

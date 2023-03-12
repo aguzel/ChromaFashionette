@@ -72,6 +72,8 @@ net.train()
 for epoch in range(epochs):
     training_loss = 0.0
     test_loss = 0.0
+    pixel_acc = 0.0
+    iou = 0.0
     for i, data in enumerate(trainloader):
         inputs, targets, _ = data
         optimizer.zero_grad()
@@ -95,13 +97,21 @@ for epoch in range(epochs):
             predictions = net(inputs)
             loss = loss_func(predictions, targets)
             test_loss += loss.item()
+            preds_ = torch.argmax(predictions.squeeze(), dim=1)
+            pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb)
+            iou += intersection_over_unit((preds_).detach().cpu(), targets.detach().cpu())
             if i % 40 == 39:    
               writer.add_scalar('test loss',
                               test_loss / 40,
                               epoch * len(testloader) + i) 
-     
-        print('[Epoch %d/%d] Training Loss: %.4f Test Loss: %.4f' % (epoch + 1, epochs, training_loss / len(trainloader),
-                                                                                        test_loss / len(testloader)))
+            
+
+        print('[Epoch %d/%d] Training Loss: %.4f Test Loss: %.4f Pixel Acc: %.3f IOU: %.3f' % (epoch + 1, epochs,
+                                                                     training_loss / len(trainloader),
+                                                                     test_loss / len(testloader),
+                                                                     pixel_acc / len(testloader),
+                                                                     iou / len(testloader)
+                                                                     ))
 PATH = "trained_fcn32s.pt"
 torch.save(net.state_dict(), PATH )
 print("The End of Training and model saved to {}".format(PATH))
@@ -114,6 +124,7 @@ images, labels, gt_images = next(iter(testloader))
 show_grid_images(images.detach().cpu())
 show_grid_images(gt_images.detach().cpu())
 example_results = (net(images.to(device)))
+print(example_results.shape)
 preds_ = torch.argmax(example_results.squeeze(), dim=1)
 output_images = decode_output(preds_)
 show_grid_images(output_images.detach().cpu())
