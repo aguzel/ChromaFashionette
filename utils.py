@@ -3,21 +3,24 @@ from matplotlib import pyplot as plt
 import numpy as np
 import torch
 
-def show_grid_images(images, nrow = 8):
+def show_grid_images(images, nrow = 8, save = 'image.png', legend = 'ground_truth'):
     grid = torchvision.utils.make_grid(images, nrow)
-    plt.figure(figsize=(15, 15))
+    plt.figure(figsize=(15, 15), facecolor='black')
     plt.imshow(grid.numpy().transpose((1, 2, 0)))
+    plt.title(legend)
     plt.axis('off')
-    plt.show()
+    plt.savefig(save)
     return None
 
-def show_grid_labels(labels, nrow = 8):
+
+def show_grid_labels(labels, nrow = 8, save = 'image.png'):
     gt_label = labels.unsqueeze(1)
     grid = torchvision.utils.make_grid(gt_label, nrow)
-    plt.figure(figsize=(15, 15))
+    plt.figure(figsize=(15, 15), facecolor='black')
     plt.imshow(grid[0], cmap='gray')
+    plt.title('LABELS')
     plt.axis('off')
-    plt.show()
+    plt.savefig(save)
     return None
 
 def decode_output(images, nc=5, device = 'cuda'):
