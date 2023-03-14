@@ -5,6 +5,7 @@ import torch.nn as nn
 from models.unet import UnetGenerator
 from models.fcn import *
 from models.deeplabv3 import deeplabV3
+from models.GSCNN.naive import GSCNN
 from utils import *
 from tqdm import tqdm
 
@@ -15,7 +16,7 @@ writer = tb.SummaryWriter('runs/')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 4
 NORMALIZE = False
-ARCHITECTURE = 'DeeplabV3+'
+ARCHITECTURE = 'GSCNN'
 NUM_CLASSES = 5 
 LR = 1e-4
 EPOCHS = 10
@@ -46,6 +47,8 @@ elif ARCHITECTURE == 'FCN':
   net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
 elif ARCHITECTURE == 'DeeplabV3+':
   net = deeplabV3(n_class = NUM_CLASSES)
+elif ARCHITECTURE == 'GSCNN':
+  net = GSCNN(n_class = NUM_CLASSES)
 
 net = net.to(device)
 
