@@ -5,6 +5,7 @@ import torch.nn as nn
 from models.unet import UnetGenerator
 from models.fcn import *
 from models.deeplabv3 import deeplabV3
+from models.GSCNN.gscnn import GSCNN
 from utils import *
 from tqdm import tqdm
 
@@ -16,7 +17,7 @@ writer = tb.SummaryWriter('runs/')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 4
 NORMALIZE = False
-ARCHITECTURE = 'DeeplabV3+'
+ARCHITECTURE = 'U-Net'
 NUM_CLASSES = 5 
 
 # Data Load
@@ -37,16 +38,21 @@ else:
 testset = FashionImageSegmentationDataset(root_dir='data', mode='test', transform=transform_data, normalize=NORMALIZE)
 testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
-if ARCHITECTURE == 'U-net':
-  net = UnetGenerator(3, 5, 7, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False)
-elif ARCHITECTURE == 'FCN':
+if ARCHITECTURE == 'U-Net':
+  net = UnetGenerator(3, 5, 7, ngf=192, norm_layer=nn.BatchNorm2d, use_dropout=False)
+elif ARCHITECTURE == 'FCN32s':
   vgg_model = VGGNet(requires_grad=True, remove_fc=True)
-  net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
+  # net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
+  net = FCN32s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
+  # net = FCN16s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
+  # net = FCN8s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
 elif ARCHITECTURE == 'DeeplabV3+':
   net = deeplabV3(n_class = NUM_CLASSES)
+elif ARCHITECTURE =='GSCNN':
+   net = GSCNN(num_classes=NUM_CLASSES)
 
 net = net.to(device)
-net.load_state_dict(torch.load("StateDictionary/trained_DeeplabV3+_LR_:0.0001_EPOCH_:10.pt"))
+net.load_state_dict(torch.load("StateDictionary/trained_U-Net_357_192_LR_:0.0001_EPOCH_:20.pt"))
 net.eval()
 
 loss_func = nn.CrossEntropyLoss()
@@ -62,9 +68,9 @@ for i, data in t:
     inputs = inputs.to(device)
     targets = targets.to(device)
     predictions = net(inputs)
-    loss = loss_func(predictions['out'], targets)
+    loss = loss_func(predictions, targets)
     test_loss += loss.item()
-    preds_ = torch.argmax(predictions['out'].squeeze(), dim=1)
+    preds_ = torch.argmax(predictions.squeeze(), dim=1)
     pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=False)
     iou += intersection_over_unit((preds_).detach().cpu(), targets.detach().cpu())
     if i % 40 == 39:    
@@ -81,7 +87,7 @@ print('Test Loss: %.4f Pixel Acc: %.3f IOU: %.3f' % ( test_loss / len(testloader
 # Image Report
 images, labels, gt_images = next(iter(testloader))
 predictions = (net(images.to(device)))
-preds_ = torch.argmax(predictions['out'].squeeze(), dim=1)
+preds_ = torch.argmax(predictions.squeeze(), dim=1)
 output_images = decode_output(preds_)
 
 show_grid_images(images.detach().cpu(),nrow=BATCH_SIZE, save='report/_input.png', legend='INPUT')

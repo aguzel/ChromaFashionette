@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import models
 from torchvision.models.vgg import VGG
-
+from torchvision.models import VGG16_Weights
 
 class FCN32s(nn.Module):
 
@@ -152,12 +152,12 @@ class FCNs(nn.Module):
 
 
 class VGGNet(VGG):
-    def __init__(self, pretrained=True, model='vgg16', requires_grad=True, remove_fc=True, show_params=False):
+    def __init__(self, weights=VGG16_Weights.DEFAULT, model='vgg16', requires_grad=True, remove_fc=True, show_params=False):
         super().__init__(make_layers(cfg[model]))
         self.ranges = ranges[model]
 
-        if pretrained:
-            exec("self.load_state_dict(models.%s(pretrained=True).state_dict())" % model)
+        if weights:
+            exec("self.load_state_dict(models.%s(weights=VGG16_Weights.DEFAULT).state_dict())" % model)
 
         if not requires_grad:
             for param in super().parameters():
