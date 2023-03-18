@@ -74,6 +74,11 @@ def pixel_accuracy(pred, target, background_count = False):
        accuracy = correct / target.numel()
     return accuracy
 
+def class_pixel_accuracy(pred, target, background_count = False):
+   # get correct ones by mathcing correct.class = target.class == pred.class
+   # get accuracy by correct.class / prec.class.numel()
+   return None
+   
 
 def intersection_over_unit(pred, target, num_classes = 5):
   ious = []

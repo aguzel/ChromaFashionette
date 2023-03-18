@@ -15,9 +15,9 @@ writer = tb.SummaryWriter('runs/')
 
 # Training Settings
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 2
+BATCH_SIZE = 8
 NORMALIZE = False
-ARCHITECTURE = 'U-Net_357_192'
+ARCHITECTURE = 'FCNs'
 NUM_CLASSES = 5 
 LR = 1e-4
 EPOCHS = 20
@@ -69,6 +69,7 @@ optimizer = torch.optim.Adam(net.parameters(),
                              )
 
 # Training
+scaler = torch.cuda.amp.GradScaler()
 start_time = time.time()
 net.train()
 for epoch in range(EPOCHS):
@@ -80,14 +81,18 @@ for epoch in range(EPOCHS):
         inputs, targets, _ = data
         optimizer.zero_grad()
         inputs = inputs.to(device)
-        targets = targets.to(device)        
-        predictions = net(inputs)
-        if ARCHITECTURE == 'DeeplabV3+':
-          loss = loss_func(predictions['out'], targets)
-        else:
-          loss = loss_func(predictions, targets)   
-        loss.backward(retain_graph=True)
-        optimizer.step()
+        targets = targets.to(device)  
+        with torch.autocast(device_type='cuda', dtype=torch.float16):
+           predictions = net(inputs)
+        # if ARCHITECTURE == 'DeeplabV3+':
+        #   loss = loss_func(predictions['out'], targets)
+        # else:
+           loss = loss_func(predictions, targets)   
+        # loss.backward(retain_graph=True)
+        scaler.scale(loss).backward()
+        # optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
         training_loss += loss.item()
         if i % 200 == 199:    
           writer.add_scalar('training loss',

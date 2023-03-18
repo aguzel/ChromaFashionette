@@ -15,9 +15,9 @@ writer = tb.SummaryWriter('runs/')
 
 # Training Settings
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 4
+BATCH_SIZE = 2
 NORMALIZE = False
-ARCHITECTURE = 'U-Net'
+ARCHITECTURE = 'FCNs'
 NUM_CLASSES = 5 
 
 # Data Load
@@ -40,10 +40,10 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle
 
 if ARCHITECTURE == 'U-Net':
   net = UnetGenerator(3, 5, 7, ngf=192, norm_layer=nn.BatchNorm2d, use_dropout=False)
-elif ARCHITECTURE == 'FCN32s':
+elif ARCHITECTURE == 'FCNs':
   vgg_model = VGGNet(requires_grad=True, remove_fc=True)
-  # net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
-  net = FCN32s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
+  net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
+  # net = FCN32s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
   # net = FCN16s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
   # net = FCN8s(pretrained_net=vgg_model, n_class=NUM_CLASSES)
 elif ARCHITECTURE == 'DeeplabV3+':
@@ -52,7 +52,7 @@ elif ARCHITECTURE =='GSCNN':
    net = GSCNN(num_classes=NUM_CLASSES)
 
 net = net.to(device)
-net.load_state_dict(torch.load("StateDictionary/trained_U-Net_357_192_LR_:0.0001_EPOCH_:20.pt"))
+net.load_state_dict(torch.load("StateDictionary/trained_FCNs_LR_:0.0001_EPOCH_:20.pt"))
 net.eval()
 
 loss_func = nn.CrossEntropyLoss()
@@ -71,7 +71,7 @@ for i, data in t:
     loss = loss_func(predictions, targets)
     test_loss += loss.item()
     preds_ = torch.argmax(predictions.squeeze(), dim=1)
-    pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=False)
+    pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=True)
     iou += intersection_over_unit((preds_).detach().cpu(), targets.detach().cpu())
     if i % 40 == 39:    
       writer.add_scalar('test loss',
