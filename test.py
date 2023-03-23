@@ -15,9 +15,9 @@ writer = tb.SummaryWriter('runs/')
 
 # Training Settings
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 2
+BATCH_SIZE = 4
 NORMALIZE = False
-ARCHITECTURE = 'FCNs'
+ARCHITECTURE = 'U-Net'
 NUM_CLASSES = 5 
 
 # Data Load
@@ -52,13 +52,14 @@ elif ARCHITECTURE =='GSCNN':
    net = GSCNN(num_classes=NUM_CLASSES)
 
 net = net.to(device)
-net.load_state_dict(torch.load("StateDictionary/trained_FCNs_LR_:0.0001_EPOCH_:20.pt"))
+net.load_state_dict(torch.load("StateDictionary/trained_U-Net_357_192_LR_:0.0001_EPOCH_:20.pt"))
 net.eval()
 
 loss_func = nn.CrossEntropyLoss()
 
 test_loss = 0.0
 pixel_acc = 0.0
+pixel_acc_class = np.zeros(5)
 iou = 0.0
 t = tqdm(enumerate(testloader))
 for i, data in t:
@@ -72,7 +73,10 @@ for i, data in t:
     test_loss += loss.item()
     preds_ = torch.argmax(predictions.squeeze(), dim=1)
     pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=True)
+    pixel_acc_class += np.array(class_pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb))
     iou += intersection_over_unit((preds_).detach().cpu(), targets.detach().cpu())
+    # if i == 2:
+    #   import sys; sys.exit()
     if i % 40 == 39:    
       writer.add_scalar('test loss',
                       test_loss / 40,
@@ -81,6 +85,13 @@ print('Test Loss: %.4f Pixel Acc: %.3f IOU: %.3f' % ( test_loss / len(testloader
                                                       pixel_acc / len(testloader),
                                                       iou / len(testloader)
                                                       ))
+pixel_acc_class = pixel_acc_class / len(testloader)
+print('Background Accuracy: %.3f\n Hair Accuracy: %.3f\n Clothes Accuracy: %.3f\n Skin Accuracy: %.3f\n Accessories Accuracy: %.3f\n' % (pixel_acc_class[0],
+                                                                                                                                         pixel_acc_class[1],
+                                                                                                                                         pixel_acc_class[2],
+                                                                                                                                         pixel_acc_class[3],
+                                                                                                                                         pixel_acc_class[4]
+                                                                                                                                         ))
 
 
 

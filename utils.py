@@ -61,8 +61,10 @@ def pixel_accuracy(pred, target, background_count = False):
     target = target * 255.0
     pred = 0.2989 * pred[:, 0, :, :] + 0.5870 * pred[:, 1, :, :] + 0.1140 * pred[:, 2, :, :]
     target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
+    
     pred = torch.round(pred, decimals=1)
     target = torch.round(target, decimals=1)
+    classes = torch.unique(target) 
     # Calculate the number of correctly classified pixels
     background_image = torch.zeros_like(target)
     correct = (pred == target).sum().item()
@@ -74,10 +76,41 @@ def pixel_accuracy(pred, target, background_count = False):
        accuracy = correct / target.numel()
     return accuracy
 
-def class_pixel_accuracy(pred, target, background_count = False):
-   # get correct ones by mathcing correct.class = target.class == pred.class
-   # get accuracy by correct.class / prec.class.numel()
-   return None
+def class_pixel_accuracy(pred, target):
+    # Convert the RGB images to grayscale
+    target = target * 255.0
+    pred = 0.2989 * pred[:, 0, :, :] + 0.5870 * pred[:, 1, :, :] + 0.1140 * pred[:, 2, :, :]
+    target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
+    pred = torch.round(pred, decimals=1)
+    target = torch.round(target, decimals=1)  
+    classes = torch.unique(target)
+    background = round(classes[0].item(), 1)
+    skin = round(classes[1].item(), 1)
+    accessories = round(classes[2].item(), 1)
+    clothes = round(classes[3].item(), 1)
+    hair = round(classes[4].item(), 1)
+    # background
+    total_background = torch.count_nonzero(target == background)
+    correct_background = torch.count_nonzero((pred == background) & (target == background))
+    acc_background = correct_background / total_background
+    # hair
+    total_hair = torch.count_nonzero(target == hair)
+    correct_hair = torch.count_nonzero((pred == hair) & (target == hair))
+    acc_hair = correct_hair / total_hair
+    # clothes
+    total_clothes = torch.count_nonzero(target == clothes)
+    correct_clothes = torch.count_nonzero((pred ==clothes) & (target == clothes))
+    acc_clothes = correct_clothes / total_clothes
+    # skin
+    total_skin = torch.count_nonzero(target == skin)
+    correct_skin = torch.count_nonzero((pred == skin) & (target == skin))
+    acc_skin = correct_skin / total_skin
+    # accessories
+    total_accessories = torch.count_nonzero(target == accessories)
+    correct_accessories = torch.count_nonzero((pred == accessories) & (target == accessories))
+    acc_accessories = correct_accessories / total_accessories
+    
+    return acc_background.item(), acc_hair.item(), acc_clothes.item(), acc_skin.item(), acc_accessories.item()
    
 
 def intersection_over_unit(pred, target, num_classes = 5):
