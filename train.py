@@ -6,6 +6,7 @@ from models.unet import UnetGenerator
 from models.fcn import *
 from models.deeplabv3 import deeplabV3
 from models.GSCNN.naive import GSCNN
+from models.lraspp import LRASPP
 from utils import *
 from tqdm import tqdm
 import time
@@ -17,10 +18,10 @@ writer = tb.SummaryWriter('runs/')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 8
 NORMALIZE = False
-ARCHITECTURE = 'FCNs'
+ARCHITECTURE = 'DeeplabV3+'
 NUM_CLASSES = 5 
 LR = 1e-4
-EPOCHS = 20
+EPOCHS = 15
 
 # Data Load
 transform_norm = transforms.Compose([ 
@@ -43,6 +44,9 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuff
 valset = FashionImageSegmentationDataset(root_dir='data', mode='test', transform=transform_data, normalize=NORMALIZE)
 valoader = torch.utils.data.DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
+torch.manual_seed(123)
+torch.backends.cudnn.benchmark = True
+
 # Network
 if ARCHITECTURE == 'U-Net_357_192':
   net = UnetGenerator(3, 5, 7, ngf=192, norm_layer=nn.BatchNorm2d, use_dropout=False)
@@ -55,8 +59,9 @@ elif ARCHITECTURE == 'FCNs':
 elif ARCHITECTURE == 'DeeplabV3+':
   net = deeplabV3(n_class = NUM_CLASSES)
 elif ARCHITECTURE == 'GSCNN':
-  net = GSCNN(num_classes= NUM_CLASSES)
-
+  net = GSCNN(num_classes = NUM_CLASSES)
+elif ARCHITECTURE == 'LRASPP':
+  net = LRASPP(n_class = NUM_CLASSES)
 net = net.to(device)
 
 # Optimizer
@@ -84,6 +89,8 @@ for epoch in range(EPOCHS):
         targets = targets.to(device)  
         with torch.autocast(device_type='cuda', dtype=torch.float16):
            predictions = net(inputs)
+           if ARCHITECTURE == 'DeeplabV3+' or ARCHITECTURE == 'LRASPP':
+              predictions = predictions['out']
         # if ARCHITECTURE == 'DeeplabV3+':
         #   loss = loss_func(predictions['out'], targets)
         # else:
@@ -113,7 +120,7 @@ for epoch in range(EPOCHS):
         inputs = inputs.to(device)
         targets = targets.to(device)
         predictions = net(inputs)
-        if ARCHITECTURE == 'DeeplabV3+':
+        if ARCHITECTURE == 'DeeplabV3+' or ARCHITECTURE == 'LRASPP':
           loss = loss_func(predictions['out'], targets)
           preds_ = torch.argmax(predictions['out'].squeeze(), dim=1)
         else:

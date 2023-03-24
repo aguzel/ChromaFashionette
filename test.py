@@ -6,6 +6,7 @@ from models.unet import UnetGenerator
 from models.fcn import *
 from models.deeplabv3 import deeplabV3
 from models.GSCNN.gscnn import GSCNN
+from models.lraspp import LRASPP
 from utils import *
 from tqdm import tqdm
 
@@ -17,7 +18,7 @@ writer = tb.SummaryWriter('runs/')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 4
 NORMALIZE = False
-ARCHITECTURE = 'U-Net'
+ARCHITECTURE = 'LRASPP'
 NUM_CLASSES = 5 
 
 # Data Load
@@ -50,15 +51,18 @@ elif ARCHITECTURE == 'DeeplabV3+':
   net = deeplabV3(n_class = NUM_CLASSES)
 elif ARCHITECTURE =='GSCNN':
    net = GSCNN(num_classes=NUM_CLASSES)
+elif ARCHITECTURE == 'LRASPP':
+  net = LRASPP(n_class = NUM_CLASSES)
 
 net = net.to(device)
-net.load_state_dict(torch.load("StateDictionary/trained_U-Net_357_192_LR_:0.0001_EPOCH_:20.pt"))
+net.load_state_dict(torch.load("StateDictionary/trained_LRASPP_LR_:0.0001_EPOCH_:15.pt"))
 net.eval()
 
 loss_func = nn.CrossEntropyLoss()
 
 test_loss = 0.0
 pixel_acc = 0.0
+pixel_acc_wo_bg = 0.0
 pixel_acc_class = np.zeros(5)
 iou = 0.0
 t = tqdm(enumerate(testloader))
@@ -69,10 +73,13 @@ for i, data in t:
     inputs = inputs.to(device)
     targets = targets.to(device)
     predictions = net(inputs)
+    if ARCHITECTURE == 'DeeplabV3+' or ARCHITECTURE == 'LRASPP':
+       predictions = predictions['out']
     loss = loss_func(predictions, targets)
     test_loss += loss.item()
     preds_ = torch.argmax(predictions.squeeze(), dim=1)
     pixel_acc += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=True)
+    pixel_acc_wo_bg += pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb, background_count=False)
     pixel_acc_class += np.array(class_pixel_accuracy(decode_output(preds_).detach().cpu(), gt_rgb))
     iou += intersection_over_unit((preds_).detach().cpu(), targets.detach().cpu())
     # if i == 2:
@@ -81,8 +88,9 @@ for i, data in t:
       writer.add_scalar('test loss',
                       test_loss / 40,
                       len(testloader) + i) 
-print('Test Loss: %.4f Pixel Acc: %.3f IOU: %.3f' % ( test_loss / len(testloader),
+print('Test Loss: %.4f Pixel Acc: %.3f %.3f IOU: %.3f' % ( test_loss / len(testloader),
                                                       pixel_acc / len(testloader),
+                                                      pixel_acc_wo_bg / len(testloader),
                                                       iou / len(testloader)
                                                       ))
 pixel_acc_class = pixel_acc_class / len(testloader)
@@ -98,6 +106,8 @@ print('Background Accuracy: %.3f\n Hair Accuracy: %.3f\n Clothes Accuracy: %.3f\
 # Image Report
 images, labels, gt_images = next(iter(testloader))
 predictions = (net(images.to(device)))
+if ARCHITECTURE == 'DeeplabV3+' or ARCHITECTURE == 'LRASPP':
+    predictions = predictions['out']
 preds_ = torch.argmax(predictions.squeeze(), dim=1)
 output_images = decode_output(preds_)
 
