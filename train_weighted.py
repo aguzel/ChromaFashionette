@@ -10,7 +10,8 @@ from models.lraspp import LRASPP
 from utils import *
 from tqdm import tqdm
 import time
-
+from weighted_cross_entropy import WeightedCrossEntropyLoss
+from utils import calculate_class_weights
 import torch.utils.tensorboard as tb
 writer = tb.SummaryWriter('runs/')
 
@@ -21,7 +22,7 @@ NORMALIZE = False
 ARCHITECTURE = 'FCNs'
 NUM_CLASSES = 5 
 LR = 1e-4
-EPOCHS = 5
+EPOCHS = 15
 
 # Data Load
 transform_norm = transforms.Compose([ 
@@ -41,8 +42,14 @@ else:
 trainset = FashionImageSegmentationDataset(root_dir='data', mode='train', transform=transform_data, normalize=NORMALIZE)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
+
 valset = FashionImageSegmentationDataset(root_dir='data', mode='test', transform=transform_data, normalize=NORMALIZE)
 valoader = torch.utils.data.DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+
+
+
+# import sys; sys.exit();
+
 
 torch.manual_seed(123)
 torch.backends.cudnn.benchmark = True
@@ -66,6 +73,8 @@ net = net.to(device)
 
 
 # Optimizer
+loss_weights = torch.tensor([0.2, 0.2, 0.2, 0.2, 0.2], dtype=torch.float32).to(device)
+loss_func_weighted = WeightedCrossEntropyLoss(weight=loss_weights)
 loss_func = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(net.parameters(),
                              lr=LR,
@@ -84,7 +93,9 @@ for epoch in range(EPOCHS):
     for i, data in t:
         description = 'TRAIN : {:.1f}%'.format((i + 1) / len(trainloader) * 100)
         t.set_description(description)
-        inputs, targets, _ = data
+        inputs, targets, gt_rgb = data
+        weights = calculate_class_weights(gt_rgb).to(device)
+        loss_func_weighted = WeightedCrossEntropyLoss(weight=weights)
         optimizer.zero_grad()
         inputs = inputs.to(device)
         targets = targets.to(device)  
@@ -95,7 +106,9 @@ for epoch in range(EPOCHS):
         # if ARCHITECTURE == 'DeeplabV3+':
         #   loss = loss_func(predictions['out'], targets)
         # else:
-           loss = loss_func(predictions, targets)   
+          #  loss = loss_func(predictions, targets)
+           loss = loss_func_weighted(predictions, targets)
+          #  print("Loss {}, Loss_weighted {}".format(loss, loss_func_weighted(predictions, targets)))
         # loss.backward(retain_graph=True)
         scaler.scale(loss).backward()
         # optimizer.step()
@@ -141,7 +154,7 @@ end_time = time.time()
 print(f"Running time: {(end_time - start_time):.5f} seconds")
 
 # Save the network
-PATH = "StateDictionary/trained_{}_LR_:{}_EPOCH_:{}.pt".format(ARCHITECTURE, LR, EPOCHS)
+PATH = "StateDictionary/trained_{}_LR_:{}_EPOCH_:{}_weighted.pt".format(ARCHITECTURE, LR, EPOCHS)
 torch.save(net.state_dict(), PATH )
 print("The End of Training and model saved to {}".format(PATH))
 

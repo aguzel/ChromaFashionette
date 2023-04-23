@@ -125,3 +125,44 @@ def intersection_over_unit(pred, target, num_classes = 5):
     union = pred_inds.long().sum().data.cpu() + target_inds.long().sum().data.cpu() - intersection
     ious.append(float(intersection) / float(max(union, 1)))
   return np.array(ious).mean()
+
+def calculate_class_weights(target):
+    # Convert the RGB images to grayscale
+    target = target * 255.0
+    target = 0.2989 * target[:, 0, :, :] + 0.5870 * target[:, 1, :, :] + 0.1140 * target[:, 2, :, :]
+    target = torch.round(target, decimals=1)  
+    classes = torch.unique(target)
+    background = round(classes[0].item(), 1)
+    skin = round(classes[1].item(), 1)
+    accessories = round(classes[2].item(), 1)
+    clothes = round(classes[3].item(), 1)
+    hair = round(classes[4].item(), 1)
+    class_weights = []
+    total_background = torch.count_nonzero(target == background)
+    background_ratio = total_background / target.numel()
+    class_weights.append(background_ratio)
+
+
+    total_skin = torch.count_nonzero(target == skin)
+    skin_ratio = total_skin / target.numel()
+
+    class_weights.append(skin_ratio)
+    total_accessories = torch.count_nonzero(target == accessories)
+    accessories_ratio = total_accessories / target.numel()
+
+    class_weights.append(accessories_ratio)
+    total_clothes = torch.count_nonzero(target == clothes)
+    clothes_ratio = total_clothes / target.numel()
+
+    class_weights.append(clothes_ratio)
+    total_hair = torch.count_nonzero(target == hair)
+    hair_ratio = total_hair / target.numel()
+
+    class_weights.append(hair_ratio)
+    # print("background ratio:{} ". format(background_ratio))
+    # print("skin ratio:{} ". format(skin_ratio))
+    # print("accessories ratio:{} ". format(accessories_ratio))
+    # print("hair ratio:{} ". format(hair_ratio))
+    # print("total ratio : {}".format(background_ratio + skin_ratio + accessories_ratio + clothes_ratio + hair_ratio))
+    loss_weights = (1  - torch.tensor(class_weights)) / (len(class_weights) - 1)
+    return loss_weights
