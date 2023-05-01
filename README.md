@@ -35,3 +35,15 @@ python3 train_weighted.py
 python3 test.py
 ```
 
+### Training Settings
+
+```shell
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+BATCH_SIZE = 4
+NORMALIZE = False
+ARCHITECTURE = 'DeepLabV3+'
+NUM_CLASSES = 5 
+LR = 1e-4
+EPOCHS = 5
+```
+
