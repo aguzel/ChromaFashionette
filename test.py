@@ -19,7 +19,7 @@ writer = tb.SummaryWriter('runs/')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 4
 NORMALIZE = False
-ARCHITECTURE = 'FCNs'
+ARCHITECTURE = 'DeeplabV3+'
 NUM_CLASSES = 5 
 
 # Data Load
@@ -38,10 +38,10 @@ else:
   transform_data = transform
 
 testset = FashionImageSegmentationDataset(root_dir='data', mode='test', transform=transform_data, normalize=NORMALIZE)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
 
 if ARCHITECTURE == 'U-Net':
-  net = UnetGenerator(3, 5, 7, ngf=192, norm_layer=nn.BatchNorm2d, use_dropout=False)
+  net = UnetGenerator(3, 5, 7, ngf=128, norm_layer=nn.BatchNorm2d, use_dropout=False)
 elif ARCHITECTURE == 'FCNs':
   vgg_model = VGGNet(requires_grad=True, remove_fc=True)
   net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
@@ -56,7 +56,7 @@ elif ARCHITECTURE == 'LRASPP':
   net = LRASPP(n_class = NUM_CLASSES)
 
 net = net.to(device)
-net.load_state_dict(torch.load("StateDictionary/trained_FCNs_LR_:0.0001_EPOCH_:15_weighted.pt"))
+net.load_state_dict(torch.load("StateDictionary/trained_DeeplabV3+_LR_:0.0001_EPOCH_:15_weighted.pt"))
 net.eval()
 
 loss_func = nn.CrossEntropyLoss()
@@ -112,7 +112,7 @@ if ARCHITECTURE == 'DeeplabV3+' or ARCHITECTURE == 'LRASPP':
 preds_ = torch.argmax(predictions.squeeze(), dim=1)
 output_images = decode_output(preds_)
 print("Writing to report folder...")
-# show_grid_images(images.detach().cpu(),nrow=BATCH_SIZE, save='report/_input.png', legend='INPUT')
-# show_grid_labels(labels.detach().cpu(), nrow=BATCH_SIZE, save='report/_labels.png')
-# show_grid_images(gt_images.detach().cpu(), nrow=BATCH_SIZE, save='report/ground_truth.png', legend='GROUND TRUTH')
+show_grid_images(images.detach().cpu(),nrow=BATCH_SIZE, save='report/_input.png', legend='INPUT')
+show_grid_labels(labels.detach().cpu(), nrow=BATCH_SIZE, save='report/_labels.png')
+show_grid_images(gt_images.detach().cpu(), nrow=BATCH_SIZE, save='report/ground_truth.png', legend='GROUND TRUTH')
 show_grid_images(output_images.detach().cpu(), nrow=BATCH_SIZE, save='report/predictions.png', legend='Predictions')

@@ -19,7 +19,7 @@ writer = tb.SummaryWriter('runs/')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 4
 NORMALIZE = False
-ARCHITECTURE = 'FCNs'
+ARCHITECTURE = 'DeeplabV3+'
 NUM_CLASSES = 5 
 LR = 1e-4
 EPOCHS = 15
@@ -56,7 +56,7 @@ torch.backends.cudnn.benchmark = True
 
 # Network
 if ARCHITECTURE == 'U-Net_357_192':
-  net = UnetGenerator(3, 5, 7, ngf=192, norm_layer=nn.BatchNorm2d, use_dropout=False)
+  net = UnetGenerator(3, 5, 7, ngf=168, norm_layer=nn.BatchNorm2d, use_dropout=False)
 elif ARCHITECTURE == 'FCNs':
   vgg_model = VGGNet(requires_grad=True, remove_fc=True)
   net = FCNs(pretrained_net=vgg_model, n_class=NUM_CLASSES)
