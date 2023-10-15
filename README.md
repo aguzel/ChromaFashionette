@@ -7,6 +7,9 @@ It combines the word "chroma," which refers to color, with " **fashio[net]** te,
 ![image](https://user-images.githubusercontent.com/46696280/216799057-8225705b-b6be-4854-bfc9-6a9b33ef9886.png)
 
 
+![image](https://github.com/aguzel/ChromaFashionette/assets/46696280/5154c825-1834-470e-9ef9-9b40ae5e37fb)
+
+
 ### Install dependencies
 ```shell
 pip3 install -r requirements.txt
