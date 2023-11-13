@@ -1,3 +1,5 @@
+[DOWNLOAD PAPER](https://github.com/aguzel/ChromaFashionette/blob/main/paper.pdf)
+
 # ChromaFashio[net]te :dress: :brain:
 **Designing Efficient Image-to-Image Translation Artificial Neural Network Model For Segmenting Fashion Images**
 
